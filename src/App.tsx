@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, Link } from "react-router-dom";
 import { Terminal, Shield, Lock, ShieldAlert, Cpu } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "./lib/utils";
@@ -38,7 +38,12 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               <span className="text-[10px] text-[#00FF41]/60">CREATORS:</span>
               <span className="text-sm font-bold text-[#00FF41]">AYOUB & RACHID</span>
             </div>
-            <div className="admin-badge inline-block">SYSTEM ACTIVE</div>
+            <div className="flex items-center gap-4 justify-end">
+              <Link to="/admin" className="text-[10px] text-[#00FF41]/60 hover:text-[#00FF41] hover:underline underline-offset-4">
+                ADMIN_ACCESS
+              </Link>
+              <div className="admin-badge inline-block">SYSTEM ACTIVE</div>
+            </div>
           </div>
         </header>
 
