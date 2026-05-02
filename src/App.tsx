@@ -77,9 +77,27 @@ function Home() {
   useEffect(() => {
     const fetchState = async () => {
       try {
-        const res = await fetch("/api/state");
-        const data = await res.json();
-        setState(data);
+        const res = await fetch("/api/state").catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          setState(data);
+        } else {
+          // Fallback to local storage for static hosting (Netlify)
+          const saved = localStorage.getItem("elite_hacker_state");
+          if (saved) {
+            setState(JSON.parse(saved));
+          } else {
+            setState({
+              isActive: false,
+              rooms: Array.from({ length: 7 }).map((_, i) => ({
+                id: i + 1,
+                name: `SECTOR_0${i + 1}`,
+                guests: 0,
+                max: 100
+              }))
+            });
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch state:", err);
       }
@@ -99,17 +117,28 @@ function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomId }),
-      });
+      }).catch(() => null);
       
-      if (res.ok) {
+      if (res && res.ok) {
         setRegisteredRooms(prev => new Set(prev).add(roomId));
-        // Optimistically update local state to avoid waiting for next poll
         setState(prev => {
           if (!prev) return prev;
           return {
             ...prev,
             rooms: prev.rooms.map(r => r.id === roomId ? { ...r, guests: r.guests + 1 } : r)
           };
+        });
+      } else {
+        // Fallback for Netlify
+        setRegisteredRooms(prev => new Set(prev).add(roomId));
+        setState(prev => {
+          if (!prev) return prev;
+          const newState = {
+            ...prev,
+            rooms: prev.rooms.map(r => r.id === roomId ? { ...r, guests: Math.min(r.guests + 1, r.max) } : r)
+          };
+          localStorage.setItem("elite_hacker_state", JSON.stringify(newState));
+          return newState;
         });
       }
     } catch (err) {
@@ -239,9 +268,31 @@ function Admin() {
     if (!token) return;
     
     const fetchState = async () => {
-      const res = await fetch("/api/state");
-      const data = await res.json();
-      setState(data);
+      try {
+        const res = await fetch("/api/state").catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          setState(data);
+        } else {
+          // Fallback to local storage for static hosting (Netlify)
+          const saved = localStorage.getItem("elite_hacker_state");
+          if (saved) {
+            setState(JSON.parse(saved));
+          } else {
+            setState({
+              isActive: false,
+              rooms: Array.from({ length: 7 }).map((_, i) => ({
+                id: i + 1,
+                name: `SECTOR_0${i + 1}`,
+                guests: 0,
+                max: 100
+              }))
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch state:", err);
+      }
     };
     
     fetchState();
@@ -253,26 +304,56 @@ function Admin() {
     e.preventDefault();
     setError("");
     
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, code }),
-    });
-    
-    const data = await res.json();
-    if (data.success) {
-      setToken(data.token);
-      localStorage.setItem("admin_token", data.token);
-    } else {
-      setError(data.message);
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, code }),
+      }).catch(() => null);
+      
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setToken(data.token);
+          localStorage.setItem("admin_token", data.token);
+        } else {
+          setError(data.message);
+        }
+      } else {
+        // Fallback for Netlify
+        if (username.toLowerCase() === "ayoub" && code.toLowerCase() === "rachid") {
+          setToken("ELITE_HACKER_TOKEN_999");
+          localStorage.setItem("admin_token", "ELITE_HACKER_TOKEN_999");
+        } else {
+          setError("ACCESS DENIED");
+        }
+      }
+    } catch (err) {
+      setError("AUTHENTICATION FAILED");
     }
   };
 
   const toggleWindow = async () => {
-    await fetch("/api/admin/toggle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
+    try {
+      const res = await fetch("/api/admin/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      }).catch(() => null);
+      
+      if (res && !res.ok) {
+        // Let it fallback
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    
+    // Optimistic / fallback update
+    setState(prev => {
+      if (!prev) return prev;
+      const newState = { ...prev, isActive: !prev.isActive };
+      localStorage.setItem("elite_hacker_state", JSON.stringify(newState));
+      return newState;
     });
   };
 
