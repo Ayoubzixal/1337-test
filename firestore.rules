@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Validation helper
+    function isValidState(data) {
+      return data.keys().hasAll(['isActive', 'rooms']) &&
+             data.keys().size() == 2 &&
+             data.isActive is bool &&
+             data.rooms is list &&
+             data.rooms.size() <= 10;
+    }
+
+    match /state/{docId} {
+      // Allow read without auth for the test site
+      allow read: if true;
+      
+      // Allow create and update. We skip auth check because the user explicitly wants a simple test site and doesn't want to log in (they use an app-level hardcoded password).
+      allow create: if isValidState(request.resource.data) && request.resource.data.rooms.size() > 0;
+      
+      allow update: if isValidState(request.resource.data) &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasAny(['isActive', 'rooms']);
+    }
+  }
+}

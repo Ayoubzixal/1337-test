@@ -1,0 +1,35 @@
+{
+  "entities": {
+    "SystemState": {
+      "title": "SystemState",
+      "description": "Global state of the hacker intake system.",
+      "type": "object",
+      "properties": {
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the system is unlocked"
+        },
+        "rooms": {
+          "type": "array",
+          "description": "List of rooms and their current capacities",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "number" },
+              "name": { "type": "string" },
+              "guests": { "type": "number" },
+              "max": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["isActive", "rooms"]
+    }
+  },
+  "firestore": {
+    "state/{docId}": {
+      "schema": "SystemState",
+      "description": "Global state document, typically the 'main' document."
+    }
+  }
+}
