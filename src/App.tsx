@@ -9,31 +9,7 @@ import {
 import { Terminal, Shield, Lock, ShieldAlert, Cpu } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "./lib/utils";
-import { doc, onSnapshot, setDoc, getDoc } from "firebase/firestore";
-import { db } from "./lib/firebase";
-
-// Types
-interface Room {
-  id: number;
-  name: string;
-  guests: number;
-  max: number;
-}
-
-interface AppState {
-  isActive: boolean;
-  rooms: Room[];
-}
-
-const DEFAULT_STATE: AppState = {
-  isActive: false,
-  rooms: Array.from({ length: 7 }).map((_, i) => ({
-    id: i + 1,
-    name: `SECTOR_0${i + 1}`,
-    guests: 0,
-    max: 100,
-  })),
-};
+import { useSystemState } from "./hooks/useSystemState";
 
 function MainLayout({ children, isActive }: { children: React.ReactNode, isActive?: boolean }) {
   return (
@@ -97,37 +73,11 @@ function MainLayout({ children, isActive }: { children: React.ReactNode, isActiv
 }
 
 function Home() {
-  const [state, setState] = useState<AppState | null>(null);
+  const { state, registerRoom } = useSystemState();
   const [registeredRooms, setRegisteredRooms] = useState<Set<number>>(
     new Set(JSON.parse(localStorage.getItem("registered_rooms") || "[]"))
   );
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-
-  // Sync state with Firestore
-  useEffect(() => {
-    let unsubscribe = () => {};
-    const initDb = async () => {
-      try {
-        const stateRef = doc(db, "state", "main");
-        const docSnap = await getDoc(stateRef);
-        if (!docSnap.exists()) {
-           await setDoc(stateRef, DEFAULT_STATE);
-        }
-        
-        unsubscribe = onSnapshot(stateRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setState(docSnap.data() as AppState);
-          }
-        }, (error) => {
-           console.error("Firestore Error: ", error);
-        });
-      } catch (err) {
-        console.error("Initialization error:", err);
-      }
-    };
-    initDb();
-    return () => unsubscribe();
-  }, []);
 
   // Update localStorage when registering
   useEffect(() => {
@@ -143,21 +93,9 @@ function Home() {
     setRegisteredRooms((prev) => new Set(prev).add(roomId));
     
     try {
-      const stateRef = doc(db, "state", "main");
-      const currentState = await getDoc(stateRef);
-      if (currentState.exists()) {
-        const data = currentState.data() as AppState;
-        const newRooms = data.rooms.map((r) => 
-          r.id === roomId ? { ...r, guests: Math.min(r.guests + 1, r.max) } : r
-        );
-        
-        await setDoc(stateRef, {
-          isActive: data.isActive,
-          rooms: newRooms
-        });
-      }
+      await registerRoom(roomId);
     } catch (err) {
-      console.error("Failed to register in firestore:", err);
+      console.error("Registration failed", err);
     } finally {
       setActionLoading(null);
     }
@@ -221,99 +159,99 @@ function Home() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="h-full flex flex-col overflow-auto"
+              className="h-full flex flex-col overflow-hidden relative w-full"
             >
-              <div className="min-w-[600px] sm:min-w-0 h-full flex flex-col pl-2 pr-2 sm:pr-0">
-                <table className="w-full text-left border-collapse block overflow-y-auto h-full pr-0 sm:pr-2">
-                  <thead className="text-[10px] sm:text-[11px] uppercase text-[#00FF41]/50 border-b border-[#00FF41]/30 table w-full table-fixed sticky top-0 bg-[#050505]">
-                    <tr>
-                      <th className="pb-3 font-medium w-12 sm:w-16">ID</th>
-                      <th className="pb-3 font-medium">SECTOR / ROOM</th>
-                      <th className="pb-3 font-medium w-32 sm:w-64">
-                        LOAD_CAPACITY
-                      </th>
-                      <th className="pb-3 font-medium w-24 sm:w-32">
-                        THREAT_LEVEL
-                      </th>
-                      <th className="pb-3 font-medium text-right w-32 sm:w-48">
-                        ACTION
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs sm:text-sm block w-full pt-2">
-                    {state.rooms.map((room, index) => {
-                      const isRegistered = registeredRooms.has(room.id);
-                      const isFull = room.guests >= room.max;
-                      const isLast = index === state.rooms.length - 1;
+              {/* Desktop Header */}
+              <div className="hidden sm:grid grid-cols-[4rem_1fr_12rem_6rem_8rem] md:grid-cols-[4rem_1fr_16rem_8rem_auto] gap-4 text-[11px] uppercase text-[#00FF41]/50 border-b border-[#00FF41]/30 pb-3 font-medium sticky top-0 bg-[#050505] z-10 pr-2">
+                <div>ID</div>
+                <div>SECTOR / ROOM</div>
+                <div>LOAD_CAPACITY</div>
+                <div>THREAT_LEVEL</div>
+                <div className="text-right">ACTION</div>
+              </div>
 
-                      return (
-                        <tr
-                          key={room.id}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col gap-3 sm:gap-0 sm:pt-2 sm:pr-2 pb-16 sm:pb-4">
+                {state.rooms.map((room, index) => {
+                  const isRegistered = registeredRooms.has(room.id);
+                  const isFull = room.guests >= room.max;
+                  const isLast = index === state.rooms.length - 1;
+
+                  return (
+                    <div
+                      key={room.id}
+                      className={cn(
+                        "room-row flex flex-col sm:grid sm:grid-cols-[4rem_1fr_12rem_6rem_8rem] md:grid-cols-[4rem_1fr_16rem_8rem_auto] gap-3 sm:gap-4 items-start sm:items-center py-4 border-[#00FF41]/30",
+                        !isLast && "border-b",
+                        "bg-[#00FF41]/5 sm:bg-transparent p-4 sm:p-0 rounded-sm sm:rounded-none"
+                      )}
+                    >
+                      {/* Mobile Top Row / Desktop ID */}
+                      <div className="flex justify-between w-full sm:w-auto items-center">
+                        <div className="font-bold text-[#00FF41] sm:hidden text-xs flex items-center gap-2">
+                          <span className="text-[#00FF41]/60">ID:</span> 0{room.id}
+                        </div>
+                        <div className="font-bold hidden sm:block text-sm">0{room.id}</div>
+                        <div className="text-[10px] sm:hidden bg-[#00FF41]/10 px-2 py-1 text-[#00FF41] border border-[#00FF41]/20">
+                          {threatLevels[(room.id - 1) % 4]}
+                        </div>
+                      </div>
+
+                      <div className="truncate font-bold sm:font-normal text-base sm:text-sm w-full">
+                        {room.name}
+                      </div>
+
+                      <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-start">
+                        <div className="flex justify-between items-center w-full">
+                          <span className="text-xs sm:text-sm whitespace-nowrap text-[#00FF41] sm:opacity-100">
+                            {room.guests} / {room.max} <span className="sm:hidden text-[10px] text-[#00FF41]/60">CAPACITY</span>
+                          </span>
+                          <div className="sm:hidden text-xs text-[#00FF41]/60">
+                            {Math.round((room.guests / room.max) * 100)}%
+                          </div>
+                        </div>
+                        <div className="w-full sm:w-24 h-1.5 sm:h-1 bg-[#003B00] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#00FF41] transition-all duration-300"
+                            style={{
+                              width: `${(room.guests / room.max) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="text-xs hidden sm:block text-[#00FF41]/80">
+                        {threatLevels[(room.id - 1) % 4]}
+                      </div>
+
+                      <div className="w-full sm:w-auto mt-2 sm:mt-0 flex justify-end sm:justify-end">
+                        <button
+                          onClick={() => handleRegister(room.id)}
+                          disabled={
+                            isRegistered ||
+                            isFull ||
+                            actionLoading === room.id
+                          }
                           className={cn(
-                            "room-row table w-full table-fixed",
-                            isLast && "border-none",
+                            "uppercase text-xs sm:text-[11px] px-4 py-4 sm:px-4 sm:py-2 w-full sm:w-auto min-w-[120px] text-center transition-all",
+                            isRegistered
+                              ? "btn-register btn-completed border-[#00FF41]/40 text-[#00FF41]/60"
+                              : isFull
+                                ? "btn-register btn-completed opacity-40 cursor-not-allowed bg-black"
+                                : "btn-register bg-[#00FF41]/10 hover:bg-[#00FF41]/20 border-[#00FF41]",
                           )}
                         >
-                          <td className="py-3 sm:py-4 font-bold w-12 sm:w-16">
-                            0{room.id}
-                          </td>
-                          <td className="py-3 sm:py-4 truncate pr-2">
-                            {room.name}
-                          </td>
-                          <td className="py-3 sm:py-4 w-32 sm:w-64 pr-2">
-                            <div
-                              className={cn(
-                                "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2",
-                                isFull ? "text-[#00FF41]/60" : "text-[#00FF41]",
-                              )}
-                            >
-                              <span className="text-[10px] sm:text-sm whitespace-nowrap">
-                                {room.guests} / {room.max}
-                              </span>
-                              <div className="w-16 sm:w-24 h-1 bg-[#003B00] rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-[#00FF41]"
-                                  style={{
-                                    width: `${(room.guests / room.max) * 100}%`,
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 sm:py-4 text-[10px] sm:text-xs w-24 sm:w-32">
-                            {threatLevels[(room.id - 1) % 4]}
-                          </td>
-                          <td className="py-3 sm:py-4 text-right w-32 sm:w-48">
-                            <button
-                              onClick={() => handleRegister(room.id)}
-                              disabled={
-                                isRegistered ||
-                                isFull ||
-                                actionLoading === room.id
-                              }
-                              className={cn(
-                                "uppercase text-[9px] sm:text-[10px] md:text-[11px] px-1 sm:px-3 py-1.5 sm:py-2",
-                                isRegistered
-                                  ? "btn-register btn-completed"
-                                  : isFull
-                                    ? "btn-register btn-completed opacity-40 cursor-not-allowed"
-                                    : "btn-register",
-                              )}
-                            >
-                              {actionLoading === room.id
-                                ? "WORKING..."
-                                : isRegistered
-                                  ? "IN ON ROOM"
-                                  : isFull
-                                    ? "LOCKED"
-                                    : "REGISTER"}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          {actionLoading === room.id
+                            ? "WORKING..."
+                            : isRegistered
+                              ? "IN ON ROOM"
+                              : isFull
+                                ? "LOCKED"
+                                : "REGISTER"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -330,38 +268,11 @@ function Home() {
 }
 
 function Admin() {
+  const { state, toggleWindow } = useSystemState();
   const [username, setUsername] = useState("");
   const [code, setCode] = useState("");
   const [token, setToken] = useState(localStorage.getItem("admin_token") || "");
   const [error, setError] = useState("");
-  const [state, setState] = useState<AppState | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-
-    let unsubscribe = () => {};
-    const initDb = async () => {
-      try {
-        const stateRef = doc(db, "state", "main");
-        const docSnap = await getDoc(stateRef);
-        if (!docSnap.exists()) {
-           await setDoc(stateRef, DEFAULT_STATE);
-        }
-        
-        unsubscribe = onSnapshot(stateRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setState(docSnap.data() as AppState);
-          }
-        }, (error) => {
-           console.error("Firestore Error: ", error);
-        });
-      } catch (err) {
-        console.error("Initialization error:", err);
-      }
-    };
-    initDb();
-    return () => unsubscribe();
-  }, [token]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,19 +287,6 @@ function Admin() {
       localStorage.setItem("admin_token", "ELITE_HACKER_TOKEN_999");
     } else {
       setError("ACCESS DENIED");
-    }
-  };
-
-  const toggleWindow = async () => {
-    if (!state) return;
-    try {
-      const stateRef = doc(db, "state", "main");
-      await setDoc(stateRef, {
-        isActive: !state.isActive,
-        rooms: state.rooms
-      });
-    } catch (err) {
-      console.error(err);
     }
   };
 
