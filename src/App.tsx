@@ -13,8 +13,8 @@ import { useSystemState } from "./hooks/useSystemState";
 
 function MainLayout({ children, isActive }: { children: React.ReactNode, isActive?: boolean }) {
   return (
-    <div className="min-h-screen bg-black sm:flex sm:items-center sm:justify-center font-mono sm:overflow-auto p-0 sm:p-4">
-      <div className="w-full max-w-[1024px] min-h-screen sm:min-h-0 sm:h-[768px] bg-[#050505] p-4 pt-6 sm:p-8 flex flex-col relative sm:overflow-hidden border-0 sm:border border-[#00FF41]/10">
+    <div className="h-[100dvh] min-h-[100dvh] bg-black sm:flex sm:items-center sm:justify-center font-mono p-0 sm:p-4 overflow-hidden">
+      <div className="w-full max-w-[1024px] h-full sm:h-[768px] bg-[#050505] p-4 pt-6 sm:p-8 flex flex-col relative overflow-hidden border-0 sm:border border-[#00FF41]/10">
         <div className="scanline hidden sm:block" />
 
         {/* Header */}
@@ -49,7 +49,7 @@ function MainLayout({ children, isActive }: { children: React.ReactNode, isActiv
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col justify-center items-center z-10 relative overflow-hidden">
+        <main className="flex-1 flex flex-col justify-start sm:justify-center items-center z-10 relative overflow-hidden min-h-0 pt-2 sm:pt-0">
           {children}
         </main>
 
@@ -105,7 +105,7 @@ function Home() {
 
   return (
     <MainLayout isActive={state?.isActive}>
-      <div className="w-full max-w-[860px] flex-1 sm:flex-none sm:h-[520px] sm:glow-border bg-black/40 backdrop-blur-sm relative flex flex-col mt-4 sm:mt-0 border border-[#00FF41]/20 sm:border-none">
+      <div className="w-full max-w-[860px] flex-1 sm:h-[520px] sm:glow-border bg-black/40 backdrop-blur-sm relative flex flex-col border sm:border-none border-[#00FF41]/20 overflow-hidden min-h-0">
         <div className="absolute -top-3 left-2 sm:left-6 bg-black sm:bg-[#050505] px-2 sm:px-4 text-[10px] sm:text-xs font-bold text-[#00FF41] border border-[#00FF41]/20 sm:border-none">
           HACKER_ACCESS_TERMINAL
         </div>
@@ -138,7 +138,7 @@ function Home() {
           </div>
         </div>
 
-        <div className="flex-1 p-0 sm:p-6 flex flex-col">
+        <div className="flex-1 p-0 sm:p-6 flex flex-col overflow-hidden min-h-0">
           {!state ? (
             <div className="flex justify-center items-center h-full flex-1">
               <span className="text-[#00FF41] animate-pulse text-xs sm:text-sm">
@@ -159,7 +159,7 @@ function Home() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1 flex flex-col relative w-full sm:overflow-hidden"
+              className="flex-1 flex flex-col relative w-full overflow-hidden min-h-0"
             >
               {/* Desktop Header */}
               <div className="hidden sm:grid grid-cols-[4rem_1fr_12rem_6rem_8rem] md:grid-cols-[4rem_1fr_16rem_8rem_auto] gap-4 text-[11px] uppercase text-[#00FF41]/50 border-b border-[#00FF41]/30 pb-3 font-medium sticky top-0 bg-[#050505] z-10 pr-2">
@@ -170,7 +170,7 @@ function Home() {
                 <div className="text-right">ACTION</div>
               </div>
 
-              <div className="flex-1 sm:overflow-y-auto overflow-x-hidden flex flex-col gap-3 sm:gap-0 p-2 sm:p-0 sm:pt-2 sm:pr-2 pb-6 sm:pb-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-3 sm:gap-0 p-2 sm:p-0 sm:pt-2 sm:pr-2 pb-6 sm:pb-4 custom-scrollbar min-h-0">
                 {state.rooms.map((room, index) => {
                   const isRegistered = registeredRooms.has(room.id);
                   const isFull = room.guests >= room.max;
