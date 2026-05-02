@@ -13,8 +13,8 @@ import { useSystemState } from "./hooks/useSystemState";
 
 function MainLayout({ children, isActive }: { children: React.ReactNode, isActive?: boolean }) {
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center font-mono overflow-auto p-2 sm:p-4">
-      <div className="w-full max-w-[1024px] min-h-[calc(100vh-16px)] sm:min-h-0 sm:h-[768px] bg-[#050505] p-4 sm:p-8 flex flex-col relative overflow-hidden border border-[#00FF41]/10">
+    <div className="min-h-screen bg-black sm:flex sm:items-center sm:justify-center font-mono sm:overflow-auto p-0 sm:p-4">
+      <div className="w-full max-w-[1024px] min-h-screen sm:min-h-0 sm:h-[768px] bg-[#050505] p-4 pt-6 sm:p-8 flex flex-col relative sm:overflow-hidden border-0 sm:border border-[#00FF41]/10">
         <div className="scanline hidden sm:block" />
 
         {/* Header */}
@@ -105,8 +105,8 @@ function Home() {
 
   return (
     <MainLayout isActive={state?.isActive}>
-      <div className="w-full max-w-[860px] h-full sm:h-[520px] glow-border bg-black/40 backdrop-blur-sm relative flex flex-col overflow-hidden">
-        <div className="absolute -top-3 left-2 sm:left-6 bg-[#050505] px-2 sm:px-4 text-[10px] sm:text-xs font-bold text-[#00FF41]">
+      <div className="w-full max-w-[860px] flex-1 sm:flex-none sm:h-[520px] sm:glow-border bg-black/40 backdrop-blur-sm relative flex flex-col mt-4 sm:mt-0 border border-[#00FF41]/20 sm:border-none">
+        <div className="absolute -top-3 left-2 sm:left-6 bg-black sm:bg-[#050505] px-2 sm:px-4 text-[10px] sm:text-xs font-bold text-[#00FF41] border border-[#00FF41]/20 sm:border-none">
           HACKER_ACCESS_TERMINAL
         </div>
 
@@ -138,7 +138,7 @@ function Home() {
           </div>
         </div>
 
-        <div className="flex-1 p-2 sm:p-6 overflow-hidden flex flex-col">
+        <div className="flex-1 p-0 sm:p-6 flex flex-col">
           {!state ? (
             <div className="flex justify-center items-center h-full flex-1">
               <span className="text-[#00FF41] animate-pulse text-xs sm:text-sm">
@@ -159,7 +159,7 @@ function Home() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="h-full flex flex-col overflow-hidden relative w-full"
+              className="flex-1 flex flex-col relative w-full sm:overflow-hidden"
             >
               {/* Desktop Header */}
               <div className="hidden sm:grid grid-cols-[4rem_1fr_12rem_6rem_8rem] md:grid-cols-[4rem_1fr_16rem_8rem_auto] gap-4 text-[11px] uppercase text-[#00FF41]/50 border-b border-[#00FF41]/30 pb-3 font-medium sticky top-0 bg-[#050505] z-10 pr-2">
@@ -170,7 +170,7 @@ function Home() {
                 <div className="text-right">ACTION</div>
               </div>
 
-              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col gap-3 sm:gap-0 sm:pt-2 sm:pr-2 pb-16 sm:pb-4">
+              <div className="flex-1 sm:overflow-y-auto overflow-x-hidden flex flex-col gap-3 sm:gap-0 p-2 sm:p-0 sm:pt-2 sm:pr-2 pb-6 sm:pb-4 custom-scrollbar">
                 {state.rooms.map((room, index) => {
                   const isRegistered = registeredRooms.has(room.id);
                   const isFull = room.guests >= room.max;
@@ -181,8 +181,8 @@ function Home() {
                       key={room.id}
                       className={cn(
                         "room-row flex flex-col sm:grid sm:grid-cols-[4rem_1fr_12rem_6rem_8rem] md:grid-cols-[4rem_1fr_16rem_8rem_auto] gap-3 sm:gap-4 items-start sm:items-center py-4 border-[#00FF41]/30",
-                        !isLast && "border-b",
-                        "bg-[#00FF41]/5 sm:bg-transparent p-4 sm:p-0 rounded-sm sm:rounded-none"
+                        !isLast && "sm:border-b",
+                        "bg-[#00FF41]/5 sm:bg-transparent p-4 sm:p-0 border sm:border-none border-[#00FF41]/20 rounded-sm sm:rounded-none"
                       )}
                     >
                       {/* Mobile Top Row / Desktop ID */}
